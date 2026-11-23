@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MediCare - Doctor Appointment & Consultation System</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🩺</text></svg>">
+</head>
+<body>
+
+  <!-- Navigation Bar -->
+  <header class="navbar">
+    <div class="container nav-content">
+      <a href="#" class="brand" id="brand-home-link">
+        <div class="brand-icon">🩺</div>
+        <span>MediCare</span>
+      </a>
+
+      <ul class="nav-links">
+        <li><button class="nav-btn active" data-tab="doctors-view">👨‍⚕️ Find Doctors</button></li>
+        <li><button class="nav-btn" data-tab="track-view">📅 My Appointments & Replies</button></li>
+        <li><button class="nav-btn" data-tab="doctor-dashboard-view">🩺 Doctor Portal</button></li>
+      </ul>
+
+      <div class="nav-actions">
+        <!-- Database status badge -->
+        <div class="nav-status">
+          <span id="db-status-badge" class="badge-status fallback">
+            <span class="status-dot"></span>
+            <span id="db-status-text">Checking DB...</span>
+          </span>
+        </div>
+
+        <!-- Auth State: Sign In Button or User Session -->
+        <div id="auth-nav-container">
+          <button class="btn btn-primary btn-sm" id="btn-open-auth">🔑 Sign In</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- =========================================================================
+       VIEW 1: DOCTORS DIRECTORY & SEARCH
+       ========================================================================= -->
+  <main id="doctors-view" class="view-panel active">
+    <!-- Hero Header -->
+    <section class="hero">
+      <div class="container">
+        <div class="hero-pill">⚡ Direct Doctor Consultation & Patient Messaging</div>
+        <h1>Book Specialist Consultations & <span>Chat with Doctors</span></h1>
+        <p class="hero-desc">
+          Schedule appointments with verified medical specialists. Doctors can review your symptoms, prescribe treatments, and reply directly to your questions.
+        </p>
+      </div>
+    </section>
+
+    <div class="container">
+      <!-- Search & Filters -->
+      <div class="filter-card">
+        <div class="search-box">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="doctor-search" placeholder="Search doctor by name, qualification, or symptoms...">
+        </div>
+        <div class="filter-select">
+          <select id="specialty-filter">
+            <option value="All">All Specialties</option>
+          </select>
+        </div>
+        <button class="btn btn-secondary" id="btn-reset-filters">Reset</button>
+      </div>
+
+      <!-- Quick Specialty Pills -->
+      <div class="specialty-pills" id="specialty-pills-container">
+        <button class="pill-btn active" data-specialty="All">All Specialties</button>
+      </div>
+
+      <!-- Doctor Cards Grid -->
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">Available Doctors</h2>
+          <p class="section-subtitle" id="doctors-count-label">Showing verified medical specialists</p>
+        </div>
+        <button class="btn btn-secondary btn-sm" id="btn-refresh-doctors">🔄 Refresh</button>
+      </div>
+
+      <div class="doctors-grid" id="doctors-grid">
+        <div style="text-align: center; grid-column: 1 / -1; padding: 3rem;">
+          <p style="color: var(--text-muted);">Loading doctors...</p>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- =========================================================================
+       VIEW 2: PATIENT VIEW: TRACK APPOINTMENTS & CONSULTATION REPLIES
+       ========================================================================= -->
+  <section id="track-view" class="view-panel container" style="display: none; padding-top: 2rem;">
+    <div class="track-card">
+      <h2 style="font-size: 1.5rem; margin-bottom: 0.5rem;">My Appointments & Consultation History</h2>
+      <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
+        Look up your appointments by <strong>Booking Reference</strong> or <strong>Patient Email</strong> to view doctor notes, prescriptions, and send messages to your doctor.
+      </p>
+
+      <form id="track-form" style="display: flex; gap: 0.75rem; max-width: 650px; margin-bottom: 1rem;">
+        <input 
+          type="text" 
+          id="track-search-input" 
+          class="form-control" 
+          placeholder="e.g. DOC-20261125-9A4E or patient@example.com" 
+          required
+        >
+        <button type="submit" class="btn btn-primary" style="white-space: nowrap;">Search Appointments</button>
+      </form>
+
+      <div id="patient-logged-hint" style="display: none; font-size: 0.88rem; color: var(--primary);">
+        💡 You are signed in as <strong id="logged-patient-email-display"></strong>. Click "Load My Bookings" below:
+        <button class="btn btn-secondary btn-sm" id="btn-load-my-bookings" style="margin-left: 0.5rem;">Load My Bookings</button>
+      </div>
+    </div>
+
+    <!-- Appointment Results Container -->
+    <div id="track-results-container"></div>
+  </section>
+
+  <!-- =========================================================================
+       VIEW 3: DOCTOR DASHBOARD & PATIENT APPOINTMENTS
+       ========================================================================= -->
+  <section id="doctor-dashboard-view" class="view-panel container" style="display: none; padding-top: 2rem;">
+    <div class="section-header">
+      <div>
+        <h2 class="section-title">Doctor Consultation Dashboard</h2>
+        <p class="section-subtitle">Review scheduled visits, manage patient statuses, and reply to patient messages</p>
+      </div>
+      <div style="display: flex; gap: 0.5rem;">
+        <button class="btn btn-secondary btn-sm" id="btn-refresh-doctor-dash">🔄 Refresh</button>
+      </div>
+    </div>
+
+    <!-- Metrics Summary Grid -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Active Doctors</div>
+        <div class="stat-value" id="stat-doctors">--</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Total Appointments</div>
+        <div class="stat-value" id="stat-total-appts">--</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label" style="color: var(--warning);">Pending Review</div>
+        <div class="stat-value" id="stat-pending" style="color: var(--warning);">--</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label" style="color: var(--success);">Confirmed Visits</div>
+        <div class="stat-value" id="stat-confirmed" style="color: var(--success);">--</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label" style="color: var(--primary);">Completed</div>
+        <div class="stat-value" id="stat-completed" style="color: var(--primary);">--</div>
+      </div>
+    </div>
+
+    <!-- Filter Bar for Doctor Table -->
+    <div class="filter-card" style="margin-top: 0; margin-bottom: 1.5rem;">
+      <div class="search-box">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="doctor-search-input" placeholder="Search patient name, email, phone, or reference...">
+      </div>
+      <div class="filter-select">
+        <select id="doctor-status-filter">
+          <option value="All">All Statuses</option>
+          <option value="Pending">Pending</option>
+          <option value="Confirmed">Confirmed</option>
+          <option value="Completed">Completed</option>
+          <option value="Cancelled">Cancelled</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Data Table of Appointments -->
+    <div class="data-table-wrapper">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Reference</th>
+            <th>Patient Details</th>
+            <th>Assigned Doctor</th>
+            <th>Date & Time</th>
+            <th>Symptoms</th>
+            <th>Status</th>
+            <th>Actions & Conversation</th>
+          </tr>
+        </thead>
+        <tbody id="doctor-table-body">
+          <tr>
+            <td colspan="7" style="text-align: center; padding: 2rem; color: var(--text-muted);">
+              Loading appointments...
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- =========================================================================
+       MODAL 1: AUTHENTICATION (SIGN IN / REGISTER)
+       ========================================================================= -->
+  <div class="modal-overlay" id="auth-modal-overlay">
+    <div class="modal" style="max-width: 480px;">
+      <div class="modal-header">
+        <h3 class="modal-title" id="auth-modal-title">Sign In to MediCare</h3>
+        <button class="modal-close" id="btn-close-auth">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Auth Mode Switcher -->
+        <div style="display: flex; gap: 0.5rem; margin-bottom: 1.25rem; background: var(--bg-subtle); padding: 0.25rem; border-radius: var(--border-radius-sm);">
+          <button type="button" class="btn btn-sm btn-block active" id="btn-toggle-login" style="flex: 1;">Sign In</button>
+          <button type="button" class="btn btn-sm btn-block" id="btn-toggle-register" style="flex: 1;">Create Account</button>
+        </div>
+
+        <form id="auth-form">
+          <!-- Role Selector -->
+          <div class="form-group">
+            <label class="form-label">I am signing in as:</label>
+            <div style="display: flex; gap: 0.5rem;">
+              <label style="flex: 1; border: 1px solid var(--border-color); padding: 0.6rem; border-radius: 6px; cursor: pointer; text-align: center; font-size: 0.9rem;">
+                <input type="radio" name="auth_role" value="patient" checked> 👩‍🦰 Patient
+              </label>
+              <label style="flex: 1; border: 1px solid var(--border-color); padding: 0.6rem; border-radius: 6px; cursor: pointer; text-align: center; font-size: 0.9rem;">
+                <input type="radio" name="auth_role" value="doctor"> 👨‍⚕️ Doctor
+              </label>
+            </div>
+          </div>
+
+          <!-- Name & Phone (Register only) -->
+          <div id="auth-extra-fields" style="display: none;">
+            <div class="form-group">
+              <label class="form-label" for="auth-name">Full Name *</label>
+              <input type="text" id="auth-name" class="form-control" placeholder="Jane Doe">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="auth-phone">Phone Number</label>
+              <input type="tel" id="auth-phone" class="form-control" placeholder="+1 (555) 123-4567">
+            </div>
+            <div class="form-group" id="doctor-spec-group" style="display: none;">
+              <label class="form-label" for="auth-specialty">Specialty *</label>
+              <input type="text" id="auth-specialty" class="form-control" placeholder="e.g. Cardiology, Pediatrics">
+            </div>
+          </div>
+
+          <!-- Email & Password -->
+          <div class="form-group">
+            <label class="form-label" for="auth-email">Email Address *</label>
+            <input type="email" id="auth-email" class="form-control" placeholder="you@hospital.org" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="auth-password">Password *</label>
+            <input type="password" id="auth-password" class="form-control" placeholder="••••••••" required>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-block" id="btn-auth-submit" style="margin-top: 1rem;">
+            Sign In
+          </button>
+        </form>
+
+        <!-- Quick 1-Click Demo Logins -->
+        <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border-color);">
+          <div style="font-size: 0.78rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700; text-align: center; margin-bottom: 0.5rem;">
+            ⚡ Quick Test / Demo Accounts
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 0.4rem;">
+            <button class="btn btn-secondary btn-sm" id="btn-quick-doctor" style="font-size: 0.8rem; justify-content: flex-start;">
+              👨‍⚕️ Login as Dr. Sarah Jenkins (Cardiologist)
+            </button>
+            <button class="btn btn-secondary btn-sm" id="btn-quick-patient" style="font-size: 0.8rem; justify-content: flex-start;">
+              👩‍🦰 Login as Patient (Jane Doe)
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       MODAL 2: CONSULTATION & REPLIES THREAD (Doctor <-> Patient)
+       ========================================================================= -->
+  <div class="modal-overlay" id="chat-modal-overlay">
+    <div class="modal" style="max-width: 650px;">
+      <div class="modal-header">
+        <div>
+          <h3 class="modal-title" id="chat-modal-title">Consultation Conversation</h3>
+          <p id="chat-modal-subtitle" style="font-size: 0.82rem; color: var(--text-secondary); margin: 0;">Ref: DOC-XXXX</p>
+        </div>
+        <button class="modal-close" id="btn-close-chat">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Appointment Summary Banner -->
+        <div id="chat-appt-summary" style="background: var(--bg-subtle); padding: 0.75rem 1rem; border-radius: var(--border-radius-sm); font-size: 0.85rem; margin-bottom: 1rem;">
+          <!-- Injected via JS -->
+        </div>
+
+        <!-- Doctor Notes & Prescription Section -->
+        <div id="chat-clinical-box" style="margin-bottom: 1rem;">
+          <!-- Injected via JS -->
+        </div>
+
+        <!-- Chat messages thread -->
+        <div class="chat-thread-container" id="chat-messages-container">
+          <!-- Injected via JS -->
+        </div>
+
+        <!-- Reply Input -->
+        <form id="chat-reply-form" class="chat-input-wrapper">
+          <textarea 
+            id="chat-reply-text" 
+            class="form-control" 
+            rows="2" 
+            placeholder="Type your reply or question here..." 
+            required
+          ></textarea>
+          <button type="submit" class="btn btn-primary" id="btn-send-reply" style="white-space: nowrap; height: auto;">
+            Send Reply
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       MODAL 3: DOCTOR PRESCRIPTION & CLINICAL NOTES EDITOR
+       ========================================================================= -->
+  <div class="modal-overlay" id="prescription-modal-overlay">
+    <div class="modal" style="max-width: 520px;">
+      <div class="modal-header">
+        <h3 class="modal-title">Doctor's Clinical Notes & Rx</h3>
+        <button class="modal-close" id="btn-close-rx">&times;</button>
+      </div>
+      <form id="prescription-form">
+        <div class="modal-body">
+          <input type="hidden" id="rx-appt-id">
+          <div class="form-group">
+            <label class="form-label" for="rx-status">Appointment Status</label>
+            <select id="rx-status" class="form-control">
+              <option value="Confirmed">Confirmed</option>
+              <option value="Completed">Completed</option>
+              <option value="Cancelled">Cancelled</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="rx-notes">Doctor Clinical Advice / Instructions</label>
+            <textarea id="rx-notes" class="form-control" rows="3" placeholder="e.g. Avoid caffeine, rest for 3 days, follow up in 2 weeks..."></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="rx-prescription">Prescription / Medication Details</label>
+            <textarea id="rx-prescription" class="form-control" rows="3" placeholder="e.g. Tab Metoprolol 25mg - 1 tablet daily after breakfast for 14 days"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="btn-cancel-rx">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Clinical Record</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       MODAL 4: BOOKING APPOINTMENT MODAL
+       ========================================================================= -->
+  <div class="modal-overlay" id="booking-modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">Schedule Doctor Appointment</h3>
+        <button class="modal-close" id="btn-close-booking">&times;</button>
+      </div>
+
+      <form id="appointment-booking-form">
+        <div class="modal-body">
+          <!-- Selected Doctor Summary Box -->
+          <div id="booking-doctor-banner" style="background: var(--bg-subtle); padding: 0.85rem; border-radius: var(--border-radius-sm); margin-bottom: 1.25rem; display: flex; align-items: center; gap: 0.85rem;">
+            <img id="modal-doc-avatar" src="" alt="Doctor" style="width: 50px; height: 50px; border-radius: 8px; object-fit: cover;">
+            <div>
+              <h4 id="modal-doc-name" style="font-size: 1rem; color: var(--text-primary); margin: 0;">Doctor Name</h4>
+              <p id="modal-doc-spec" style="font-size: 0.82rem; color: var(--text-secondary); margin: 0;">Specialty • Fee: $0</p>
+            </div>
+            <input type="hidden" id="booking-doctor-id" name="doctor_id" required>
+          </div>
+
+          <!-- Appointment Date & Time -->
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="booking-date">Appointment Date *</label>
+              <input type="date" id="booking-date" name="appointment_date" class="form-control" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Available Time Slot *</label>
+              <input type="hidden" id="booking-time" name="appointment_time" required>
+              <div id="booking-slots-container" class="time-slots-grid">
+                <span style="font-size: 0.8rem; color: var(--text-muted); grid-column: 1 / -1;">
+                  Please pick a date to load open slots...
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Patient Information -->
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="booking-patient-name">Patient Full Name *</label>
+              <input type="text" id="booking-patient-name" name="patient_name" class="form-control" placeholder="John Doe" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="booking-patient-email">Email Address *</label>
+              <input type="email" id="booking-patient-email" name="patient_email" class="form-control" placeholder="john@example.com" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="booking-patient-phone">Phone Number *</label>
+              <input type="tel" id="booking-patient-phone" name="patient_phone" class="form-control" placeholder="+1 (555) 000-0000" required>
+            </div>
+            <div class="form-row" style="gap: 0.5rem;">
+              <div class="form-group" style="flex: 1;">
+                <label class="form-label" for="booking-patient-age">Age *</label>
+                <input type="number" id="booking-patient-age" name="patient_age" class="form-control" min="1" max="120" value="28" required>
+              </div>
+              <div class="form-group" style="flex: 1.2;">
+                <label class="form-label" for="booking-patient-gender">Gender</label>
+                <select id="booking-patient-gender" name="patient_gender" class="form-control">
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="booking-symptoms">Symptoms or Reason for Consultation</label>
+            <textarea id="booking-symptoms" name="symptoms" class="form-control" rows="2" placeholder="e.g. Persistent chest pain, high fever, skin allergy..."></textarea>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="btn-cancel-booking-modal">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="btn-submit-booking">Confirm Booking</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       MODAL 5: BOOKING SUCCESS
+       ========================================================================= -->
+  <div class="modal-overlay" id="success-modal-overlay">
+    <div class="modal" style="max-width: 480px; text-align: center;">
+      <div class="modal-body" style="padding: 2.5rem 1.5rem;">
+        <div style="font-size: 3rem; margin-bottom: 0.5rem;">🎉</div>
+        <h3 style="font-size: 1.5rem; margin-bottom: 0.5rem; color: var(--success);">Appointment Confirmed!</h3>
+        <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
+          Your appointment has been registered in the database.
+        </p>
+
+        <div style="background: var(--bg-subtle); border: 2px dashed var(--primary); padding: 1.25rem; border-radius: var(--border-radius); margin-bottom: 1.5rem;">
+          <div style="font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Booking Reference Code</div>
+          <div id="success-reference-code" style="font-size: 1.4rem; font-weight: 800; color: var(--primary); font-family: monospace; letter-spacing: 0.05em; margin: 0.4rem 0;">
+            DOC-XXXXXXXX-XXXX
+          </div>
+          <button class="btn btn-secondary btn-sm" id="btn-copy-ref">📋 Copy Reference</button>
+        </div>
+
+        <div id="success-appointment-details" style="font-size: 0.88rem; text-align: left; background: #f8fafc; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem;"></div>
+
+        <div style="display: flex; gap: 0.75rem; justify-content: center;">
+          <button class="btn btn-secondary" id="btn-close-success">Done</button>
+          <button class="btn btn-primary" id="btn-track-success">Track & Message Doctor</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <p><strong>MediCare Doctor Appointment & Consultation System</strong></p>
+      <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">
+        Full-Stack Node.js, Express.js, Custom Middlewares, MySQL Relational Database, HTML5, CSS3, JavaScript.
+      </p>
+    </div>
+  </footer>
+
+  <script src="js/toast.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

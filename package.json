@@ -1,0 +1,31 @@
+{
+  "name": "doctor-appointment-system",
+  "version": "1.0.0",
+  "description": "Full-stack Doctor Appointment Booking Website using Node.js, Express.js, MySQL, HTML, CSS, and JavaScript",
+  "main": "server.js",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "init-db": "node database/init-db.js"
+  },
+  "keywords": [
+    "doctor-appointment",
+    "express",
+    "nodejs",
+    "mysql",
+    "full-stack",
+    "healthcare",
+    "booking-system"
+  ],
+  "author": "Antigravity",
+  "license": "MIT",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "mysql2": "^3.12.0"
+  }
+}
